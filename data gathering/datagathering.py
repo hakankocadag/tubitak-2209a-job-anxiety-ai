@@ -1,30 +1,29 @@
 import praw
 import time
 from using_pushhift import Data
-import requests
-data = Data(amount=10, start_time="2025-01-01", subreddit="ComputerEngineering")
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+id = os.getenv("id")
+secret = os.getenv("secret")
+data = Data(amount=10, start_date="2024-01-01", end_date="2025-12-01",subreddit="engineering")
 all_ids, dicto = data.start_gathering()
 reddit = praw.Reddit(
-    client_id="o7sT31PL8hYRCKi-CsSTJw",
-    client_secret="7ZFjTd6Zl2e999q-FoUB53qDZ1i4FA",
+    client_id=id,
+    client_secret=secret,
     user_agent="mybot by u/YOUR_REDDIT_USERNAME"
 )
-def to_base36(n):
-    chars = "0123456789abcdefghijklmnopqrstuvwxyz"
-    if n == 0:
-        return "0"
-    result = ""
-    while n > 0:
-        n, r = divmod(n, 36)
-        result = chars[r] + result
-    return result
 for pid in all_ids:
     try:
         print(f"[+] Fetching post {pid}")
         post = reddit.submission(id=pid)
         post.comments.replace_more(limit=0)
         comments = [c.body for c in post.comments.list()]
-        
+        if len(comments) < 10:
+            print(f"[!] Skipping low quality post")
+            continue
+        print(f"[OK] Post {pid} has score {post.score}, printing details...")
         if post.title == "[deleted by user]":
             print("TITLE:", dicto[pid][1])
         else:
@@ -33,7 +32,7 @@ for pid in all_ids:
             print("TEXT:", dicto[pid][0])
         else:
             print("TEXT:", post.selftext)
-        print("Commments : ")
+        print("Comments:")
         for x in comments:
             print(x)
         print("COMMENTS:", len(comments))
