@@ -12,7 +12,8 @@ class Data:
         self.job_keywords = [
             "job", "jobs", "career", "careers", "employment", "employed",
             "unemployment", "layoff", "laid off", "hiring",
-            "job market", "workplace", "workforce", "working", "works", "worked"
+            "job market", "workplace", "workforce", "working", "works", "worked", "replace", "replaces",
+            "replaced", "replacing"
         ]
         self.ai_keywords = [
             "AI", "Artificial Intelligence", "GPT", "ChatGPT", "Claude", "LLM", "LLMS",

@@ -9,7 +9,7 @@ load_dotenv()
 id = os.getenv("id")
 secret = os.getenv("secret")
 
-data = Data(amount=None, start_date="2020-01-01", end_date="2025-12-01", subreddit="gamedev")
+data = Data(amount=None, start_date="2024-01-01", end_date="2025-12-01", subreddit="MachineLearning")
 all_ids, dicto = data.start_gathering()
 
 reddit = praw.Reddit(
@@ -42,4 +42,4 @@ for pid in all_ids:
     except Exception as e:
         print("Error:", pid, e)
 df = pd.DataFrame(rows)
-df.to_csv("tubitak-2209a-job-anxiety-ai/data gathering/gamedev_data.csv", index=False)
+df.to_csv("tubitak-2209a-job-anxiety-ai/data gathering/askprogramming_data.csv", index=False)

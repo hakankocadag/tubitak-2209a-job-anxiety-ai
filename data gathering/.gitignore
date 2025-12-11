@@ -1,4 +1,12 @@
 .env
 test.py
-reddit_data.csv
 gamedev_data.csv
+gamedev_data.json
+askprogramming_data.csv
+askprogramming_data.json
+openai_data.csv
+openai_data.json
+askprogramming.png
+askprogramming_stats.png
+statics.py
+turn_json.py
