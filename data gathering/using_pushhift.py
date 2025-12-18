@@ -1,6 +1,7 @@
 import requests
 import datetime
 import re
+
 class Data:
     def __init__(self, amount, start_date, end_date, subreddit):
         self.amount = amount
@@ -9,14 +10,13 @@ class Data:
         self.end_ts = self.ts(end_date)
         self.current_before = self.end_ts
         self.all_ids = []
+        self.results_dict = {}
         self.job_keywords = [
             "job", "jobs", "career", "careers", "employment", "employed",
             "unemployment", "layoff", "laid off", "hiring",
             "job market", "workplace", "workforce", "working", "works", "worked", "replace", "replaces",
-            "replaced", "replacing"
-        ]
-        self.ai_keywords = [
-            "AI", "Artificial Intelligence", "GPT", "ChatGPT", "Claude", "LLM", "LLMS",
+            "replaced", "replacing", "cooked"] 
+        self.ai_keywords = [ "AI", "Artificial Intelligence", "GPT", "ChatGPT", "Claude", "LLM", "LLMS",
             "Bing", "LLAMA", "Midjourney", "DALL-E", "generative AI", "Gemini",
             "Copilot", "Perplexity AI", "Canva", "DeepL", "QuillBot", "Grammarly",
             "Character.ai", "Zapier", "Microsoft Copilot", "CapCut", "DeepAI",
@@ -26,57 +26,52 @@ class Data:
             "Synthesia", "Descript", "HeyGen", "Jasper", "OpusClip", "Play.ht",
             "Cursor", "Wordtune", "WriteSonic", "Copy.ai", "Murf.ai", "Pictory", "Pi",
             "Google AI Studio", "Krisp", "Fliki", "SlidesAI", "NotebookLM", "Groq",
-            "Lumen5", "Rytr", "HyperWrite", "Resemble", "Tabnine", "Mem"
-        ]
+            "Lumen5", "Rytr", "HyperWrite", "Resemble", "Tabnine", "Mem"]
+        self.job_re = re.compile(rf"\b({'|'.join(map(re.escape, self.job_keywords))})\b", re.I)
+        self.ai_re = re.compile(rf"\b({'|'.join(map(re.escape, self.ai_keywords))})\b", re.I)
 
-        self.exclude_keywords = [
-            "benchmark", "latency", "performance", "release",
-            "training", "parameters", "architecture", "vision capability",
-            "model comparison", "openai update", "tutorial", "youtube channel",
-            "animation", "subscribe", "check out my", "made this", "built this",
-            "explaining how", "how it work", "work well", "work properly"
-        ]
     def ts(self, s):
         return int(datetime.datetime.strptime(s, "%Y-%m-%d").timestamp())
+
     def match_keywords(self, text):
-        t = text.lower()
-        def word_hit(keywords):
-            return any(re.search(rf"\b{re.escape(k.lower())}\b", t) for k in keywords)
-        job_hit = word_hit(self.job_keywords)
-        ai_hit = word_hit(self.ai_keywords)
-        exclude_hit = word_hit(self.exclude_keywords)
-        return job_hit and ai_hit
+        return bool(self.job_re.search(text)) and bool(self.ai_re.search(text))
+
     def start_gathering(self):
-        self.dict = {}
         last_timestamp = None
         while True:
             url = (
-            "https://api.pullpush.io/reddit/search/submission/"
-            f"?subreddit={self.subreddit}&after={self.start_ts}"
-            f"&before={self.current_before}&size=500"
-        )
-            r = requests.get(url).json()
-            data = r.get("data", [])
+                f"https://api.pullpush.io/reddit/search/submission/"
+                f"?subreddit={self.subreddit}&after={self.start_ts}"
+                f"&before={self.current_before}&size=500&sort=desc"
+            )
+            try:
+                response = requests.get(url)
+                response.raise_for_status()
+                data = response.json().get("data", [])
+            except Exception as e:
+                print(f"Error fetching data: {e}")
+                break
             if not data:
                 break
             for post in data:
-                text = (post.get("title", "") + post.get("text", ""))
-                if self.match_keywords(text):
+                full_text = f"{post.get('title', '')} {post.get('selftext', '')}"
+                if self.match_keywords(full_text):
                     pid = post["id"]
-                    self.all_ids.append(pid)
-                    self.dict[pid] = [post.get("text", ""), post.get("title", "")]
+                    if pid not in self.results_dict:
+                        self.all_ids.append(pid)
+                        self.results_dict[pid] = {
+                            "text": post.get("selftext", ""),
+                            "title": post.get("title", "")
+                        }
+
                     if self.amount and len(self.all_ids) >= self.amount:
-                        return list(set(self.all_ids)), self.dict
-            print("Total matching posts:", len(self.all_ids))
+                        return self.all_ids, self.results_dict
+            print(f"Total matching posts: {len(self.all_ids)} | Looking before: {datetime.datetime.fromtimestamp(data[-1]['created_utc'])}")
             new_ts = data[-1]["created_utc"]
             if new_ts == last_timestamp:
-                print("API stuck at timestamp", new_ts, " — stopping.")
                 break
-
             last_timestamp = new_ts
             self.current_before = new_ts
-
             if self.current_before <= self.start_ts:
                 break
-
-        return list(set(self.all_ids)), self.dict
+        return self.all_ids, self.results_dict

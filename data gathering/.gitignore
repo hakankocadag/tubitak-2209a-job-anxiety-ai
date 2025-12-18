@@ -10,3 +10,6 @@ askprogramming.png
 askprogramming_stats.png
 statics.py
 turn_json.py
+*.csv
+*.json
+*.png
